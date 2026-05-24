@@ -7,7 +7,7 @@ from src.week6.extract import extract
 from src.week6.transform import transform
 from src.week6.load import load
 
-STATE_PATH = Path("data/state.json")
+STATE_PATH = Path("data/state/state.json")
 CONFIG_PATH = Path("configs/variant_15.yml")
 REGIONS_PATH = Path("reference/regions.csv")
 MART_DIR = Path("data/mart")
