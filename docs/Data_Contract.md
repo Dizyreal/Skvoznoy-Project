@@ -1,115 +1,81 @@
 # Data Contract
 
-## 1. Информация
+**Project:** SKVOZNOY_PROJECT  
+**Variant:** 15  
+**Source:** USGS Earthquake API (California region)  
+**Contract Version:** 1.0  
+**Last Updated:** 2026-05-24
 
-- **Источник:** USGS Earthquake Hazards Program (Геологическая служба США)
-- **Тема:** Землетрясения в регионе Калифорния (USA)
-- **Тип источника:** `usgs_earthquake` (внешнее географическое API)
-- **URL:** `https://earthquake.usgs.gov/fdsnws/event/1/query`
-- **HTTP-метод:** `GET`
+## Timezone
 
-## 2. Параметры запроса (Query Parameters)
+All timestamps are in **UTC**. No local time conversions applied.
 
-| Параметр       | Тип    | Обязательный | Значение                                                     | Описание                                     |
-| -------------- | ------ | ------------ | ------------------------------------------------------------ | -------------------------------------------- |
-| `format`       | string | Да           | `geojson`                                                    | Формат сериализации геоданных                |
-| `minmagnitude` | float  | Да           | `2.5`                                                        | Нижний порог магнитуды для фильтрации        |
-| `minlatitude`  | float  | Да           | `32.0`                                                       | Южная граница bounding box региона US_CA     |
-| `maxlatitude`  | float  | Да           | `42.0`                                                       | Северная граница bounding box региона US_CA  |
-| `minlongitude` | float  | Да           | `-125.0`                                                     | Западная граница bounding box региона US_CA  |
-| `maxlongitude` | float  | Да           | `-114.0`                                                     | Восточная граница bounding box региона US_CA |
-| `starttime`    | string | Да           | Дата начала выборки в формате YYYY-MM-DD (последние 90 дней) |
-| `endtime`      | string | Да           | Дата конца выборки в формате YYYY-MM-DD                      |
+## Granularity
 
-## 3. Регламент, ограничения и технические нюансы
+- **Raw:** One file per API request
+- **Normalized:** One row = one earthquake event
+- **Mart:** One row = one calendar day
 
-- **Частота загрузки:** Раз в сутки по расписанию (скрипт `extract.py` стягивает скользящее окно за последние 90 дней для учета возможных корректировок данных задним числом).
-- **Сетевой уровень:** Обязательный `timeout=5` секунд для предотвращения зависания потока при перегрузке серверов USGS.
-- **Специфика формата:** Ответ приходит в формате GeoJSON. На этапе экстракции сырой файл пишется "как есть" (со структурой `features`, внутри которой лежат `properties` и `geometry`). Поля `starttime` и `endtime` рассчитываются скриптом динамически от текущей даты.
-- **Аномалии данных (Notes):** Поле `depth_km` (в GeoJSON это третья координата в массиве `geometry.coordinates`) может принимать отрицательные значения. Это не баг, а особенность фиксации сейсмографами толчков выше уровня моря (например, в горах). На этапе Data Quality это нужно обрабатывать отдельно, а не просто дропать.
+## Changelog
 
-## 4. Raw слой (data/raw/)
+| Version | Date       | Change           | Reason        |
+| ------- | ---------- | ---------------- | ------------- |
+| 1.0     | 2026-05-24 | Initial contract | First release |
 
-| Поле       | Тип    | Описание                                                       |
-| ---------- | ------ | -------------------------------------------------------------- |
-| `type`     | string | Тип GeoJSON объекта ("FeatureCollection")                      |
-| `metadata` | object | Метаданные запроса (generated, url, title, status, api, count) |
-| `features` | array  | Массив событий землетрясений                                   |
-| `bbox`     | array  | Bounding box всех событий                                      |
+## Naming Rules
 
-## 5. Normalized слой (data/normalized/)
+- All columns: `snake_case`
+- Primary key: `event_id` (normalized), `date` (mart)
+- Metrics: `avg_*`, `max_*`, `min_*`, `cnt_*`
+- No abstract names like `value`, `metric1`
 
-### Зерно таблицы
+## Normalized Schema
 
-Одна строка = одно событие землетрясения
+| Column    | Type     | Nullable | Unit    | Description                  |
+| --------- | -------- | -------- | ------- | ---------------------------- |
+| event_id  | string   | No       | -       | Unique earthquake identifier |
+| magnitude | float    | Yes      | -       | Earthquake magnitude (0-10)  |
+| mag_type  | string   | Yes      | -       | Magnitude type (ml, mw, md)  |
+| place     | string   | Yes      | -       | Textual location description |
+| time      | datetime | No       | UTC     | Event occurrence time        |
+| updated   | datetime | Yes      | UTC     | Last USGS update time        |
+| felt      | int      | Yes      | count   | Number of felt reports       |
+| tsunami   | int      | Yes      | flag    | Tsunami flag (0 or 1)        |
+| latitude  | float    | No       | degrees | Epicenter latitude           |
+| longitude | float    | No       | degrees | Epicenter longitude          |
+| depth_km  | float    | Yes      | km      | Event depth                  |
+| region_id | string   | No       | -       | Region code (US_CA)          |
 
-### Схема таблицы: earthquakes
+## Mart Schema
 
-| Поле               | Тип        | Nullable | Описание                                                   |
-| ------------------ | ---------- | -------- | ---------------------------------------------------------- |
-| `event_id`         | object     | No       | Уникальный идентификатор события                           |
-| `magnitude`        | float64    | Yes      | Магнитуда землетрясения                                    |
-| `magnitude_type`   | object     | Yes      | Тип магнитуды (ml, mw, md, mlr и др.)                      |
-| `place`            | object     | Yes      | Текстовое описание местоположения                          |
-| `time`             | datetime64 | No       | Время события                                              |
-| `updated`          | datetime64 | Yes      | Время последнего обновления данных                         |
-| `url`              | object     | Yes      | Ссылка на страницу события на USGS                         |
-| `felt`             | float64    | Yes      | Количество отчетов о ощутимости                            |
-| `cdi`              | float64    | Yes      | Community Decimal Intensity (0-10)                         |
-| `mmi`              | float64    | Yes      | Modified Mercalli Intensity (0-10)                         |
-| `alert`            | object     | Yes      | Уровень оповещения (green/yellow/orange/red)               |
-| `status`           | object     | Yes      | Статус обработки (automatic/reviewed)                      |
-| `tsunami`          | int64      | Yes      | Флаг цунами (0 или 1)                                      |
-| `significance`     | float64    | Yes      | Значимость события (0-1000)                                |
-| `net`              | object     | Yes      | Идентификатор сейсмологической сети                        |
-| `num_stations`     | float64    | Yes      | Количество станций, зафиксировавших событие                |
-| `min_distance_deg` | float64    | Yes      | Минимальное расстояние до станции в градусах               |
-| `rms`              | float64    | Yes      | Среднеквадратичная остаточная ошибка                       |
-| `azimuthal_gap`    | float64    | Yes      | Наибольший азимутальный разрыв в покрытии станциями        |
-| `latitude`         | float64    | No       | Широта эпицентра                                           |
-| `longitude`        | float64    | No       | Долгота эпицентра                                          |
-| `depth_km`         | float64    | Yes      | Глубина события в километрах (может быть отрицательной)    |
-| `event_type`       | object     | Yes      | Тип сейсмического события (earthquake, quarry blast и др.) |
-| `title`            | object     | Yes      | Заголовок события                                          |
-| `time_year`        | int64      | No       | Год из времени события                                     |
-| `time_month`       | int64      | No       | Месяц из времени события                                   |
-| `time_day`         | int64      | No       | День из времени события                                    |
-| `time_hour`        | int64      | No       | Час из времени события                                     |
+| Column              | Type   | Nullable | Unit    | Description                 |
+| ------------------- | ------ | -------- | ------- | --------------------------- |
+| date                | date   | No       | -       | Calendar date (daily grain) |
+| earthquake_count    | int    | No       | count   | Total earthquakes per day   |
+| avg_magnitude       | float  | Yes      | -       | Average daily magnitude     |
+| max_magnitude       | float  | Yes      | -       | Maximum daily magnitude     |
+| min_magnitude       | float  | Yes      | -       | Minimum daily magnitude     |
+| avg_depth_km        | float  | Yes      | km      | Average daily depth         |
+| max_depth_km        | float  | Yes      | km      | Maximum daily depth         |
+| avg_magnitude_7d    | float  | Yes      | -       | 7-day rolling avg magnitude |
+| earthquake_count_7d | float  | Yes      | count   | 7-day rolling sum           |
+| deep_events_count   | int    | Yes      | count   | Events with depth > 70 km   |
+| deep_events_pct     | float  | Yes      | percent | Percentage of deep events   |
+| year                | int    | No       | -       | Year extracted from date    |
+| month               | int    | No       | -       | Month extracted from date   |
+| week                | int    | No       | -       | Week number                 |
+| day_of_week         | int    | No       | -       | Day of week (0=Monday)      |
+| region_id           | string | No       | -       | Region code                 |
+| region_name         | string | No       | -       | Human-readable region name  |
 
-### Шаги очистки (normalization)
+## Business Keys
 
-1. **Приведение типов:** Числовые поля (mag, depth_km, felt, sig, nst, dmin, rms, gap) приведены к numeric с заменой ошибок на NaN
-2. **Преобразование времени:** Поля time и updated конвертированы из unix timestamp (ms) в datetime
-3. **Заполнение пропусков:** felt и tsunami заполнены 0 вместо NaN (отсутствие данных = отсутствие события)
-4. **Добавление признаков:** Извлечены компоненты времени (год, месяц, день, час) для агрегаций
-5. **Переименование колонок:** Приведены к человеко-читаемым названиям
+- **Normalized:** `event_id`
+- **Mart:** `date`
 
-### Источник полей в raw JSON
+## Critical Rules
 
-| normalized поле  | raw JSON путь                         |
-| ---------------- | ------------------------------------- |
-| `event_id`       | `features[*].id`                      |
-| `magnitude`      | `features[*].properties.mag`          |
-| `magnitude_type` | `features[*].properties.magType`      |
-| `place`          | `features[*].properties.place`        |
-| `time`           | `features[*].properties.time`         |
-| `updated`        | `features[*].properties.updated`      |
-| `latitude`       | `features[*].geometry.coordinates[1]` |
-| `longitude`      | `features[*].geometry.coordinates[0]` |
-| `depth_km`       | `features[*].geometry.coordinates[2]` |
-
-## Data Quality Rules
-
-### Normalized layer
-
-- `event_id` - уникальный, не NULL
-- `magnitude` - диапазон 0-10
-- `depth_km` - может быть отрицательным (специфика USGS)
-- `time` - не NULL, корректный timestamp
-
-### Mart layer
-
-- `date` - уникальный, не NULL
-- `earthquake_count` - положительное число, не NULL
-- `avg_magnitude` - диапазон 0-10
-- `max_magnitude` - диапазон 0-10
+1. `date` must be unique in mart
+2. `earthquake_count` must be > 0
+3. `magnitude` must be between 0 and 10
+4. `time` cannot be NULL
