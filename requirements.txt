@@ -2,3 +2,5 @@ pandas==2.3.2
 pyyaml
 sqlalchemy
 psycopg2-binary
+requests
+yaml
