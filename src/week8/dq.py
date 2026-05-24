@@ -115,7 +115,7 @@ def run_dq_on_mart():
     checker = DQChecker(df, table_name="mart_earthquakes")
     checker.run_all_checks()
     checker.print_summary()
-    checker.save_report(Path("data/dq_report.json"))
+    checker.save_report(Path("docs/dq_report.json"))
     return checker.results
 
 if __name__ == "__main__":
