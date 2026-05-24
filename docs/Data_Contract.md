@@ -97,3 +97,19 @@
 | `latitude`       | `features[*].geometry.coordinates[1]` |
 | `longitude`      | `features[*].geometry.coordinates[0]` |
 | `depth_km`       | `features[*].geometry.coordinates[2]` |
+
+## Data Quality Rules
+
+### Normalized layer
+
+- `event_id` - уникальный, не NULL
+- `magnitude` - диапазон 0-10
+- `depth_km` - может быть отрицательным (специфика USGS)
+- `time` - не NULL, корректный timestamp
+
+### Mart layer
+
+- `date` - уникальный, не NULL
+- `earthquake_count` - положительное число, не NULL
+- `avg_magnitude` - диапазон 0-10
+- `max_magnitude` - диапазон 0-10
