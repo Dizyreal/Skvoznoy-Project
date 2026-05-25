@@ -1,9 +1,8 @@
-# src/week6/transform.py
 import pandas as pd
 import json
 from pathlib import Path
 
-def transform(raw_path, mart_dir, regions_path):
+def transform(raw_path, mart_dir, regions_path, period=None):
     with open(raw_path, 'r', encoding='utf-8') as f:
         raw_data = json.load(f)
     
@@ -74,7 +73,11 @@ def transform(raw_path, mart_dir, regions_path):
     daily['region_id'] = 'US_CA'
     daily['region_name'] = regions.loc[regions['region_id'] == 'US_CA', 'region_name'].values[0]
     
-    output_path = Path(mart_dir) / f"{Path(raw_path).stem}.csv"
+    if period:
+        output_path = Path(mart_dir) / f"mart_{period}.csv"
+    else:
+        output_path = Path(mart_dir) / f"{Path(raw_path).stem}.csv"
+    
     output_path.parent.mkdir(parents=True, exist_ok=True)
     daily.to_csv(output_path, index=False)
     

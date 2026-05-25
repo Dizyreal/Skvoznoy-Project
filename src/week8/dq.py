@@ -109,14 +109,34 @@ def run_dq_on_mart():
     if not mart_files:
         print("No mart files found")
         return None
+    
     mart_path = mart_files[0]
     df = pd.read_csv(mart_path)
     df['date'] = pd.to_datetime(df['date'])
+    
     checker = DQChecker(df, table_name="mart_earthquakes")
-    checker.run_all_checks()
+    result = checker.run_all_checks()
     checker.print_summary()
-    checker.save_report(Path("docs/dq_report.json"))
-    return checker.results
+    checker.save_report(Path("data/dq_report.json"))
+    
+    return result
 
-if __name__ == "__main__":
-    run_dq_on_mart()
+def run_dq_period(period):
+    mart_path = Path(f"data/mart/mart_{period}.csv")
+    
+    if not mart_path.exists():
+        mart_files = list(Path("data/mart").glob("*.csv"))
+        if not mart_files:
+            print(f"No mart files found for period {period}")
+            return False
+        mart_path = mart_files[0]
+    
+    df = pd.read_csv(mart_path)
+    df['date'] = pd.to_datetime(df['date'])
+    
+    checker = DQChecker(df, table_name=f"mart_earthquakes_{period}")
+    result = checker.run_all_checks()
+    checker.print_summary()
+    checker.save_report(Path(f"data/dq_report_{period}.json"))
+    
+    return result

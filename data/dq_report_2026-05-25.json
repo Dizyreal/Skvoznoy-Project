@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-05-25T19:31:30.033365",
+  "table": "mart_earthquakes_2026-05-25",
+  "rows": 86,
+  "checks": [
+    {
+      "name": "Table not empty",
+      "status": "PASS",
+      "message": "Rows: 86"
+    },
+    {
+      "name": "No NULLs in date",
+      "status": "PASS",
+      "message": "Null count: 0"
+    },
+    {
+      "name": "No NULLs in earthquake_count",
+      "status": "PASS",
+      "message": "Null count: 0"
+    },
+    {
+      "name": "Unique date",
+      "status": "PASS",
+      "message": "Duplicates: 0"
+    },
+    {
+      "name": "Range for max_magnitude",
+      "status": "PASS",
+      "message": "Values out of range [0, 10]: 0"
+    },
+    {
+      "name": "Positive values in earthquake_count",
+      "status": "PASS",
+      "message": "Non-positive count: 0"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "pass": 6,
+    "fail": 0,
+    "warning": 0
+  }
+}
