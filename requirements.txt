@@ -1,6 +1,9 @@
-pandas==2.3.2
-pyyaml
+pandas
+numpy
+matplotlib
 sqlalchemy
 psycopg2-binary
+pyyaml
 requests
-yaml
+pytest
+scikit-learn
