@@ -12,7 +12,7 @@ with DAG(
     dag_id="etl_variant_15",
     default_args=default_args,
     start_date=pendulum.datetime(2026, 5, 1, tz="UTC"),
-    schedule="*/5 * * * *",
+    schedule="* * * * *",
     catchup=False,
     description="ETL pipeline for USGS Earthquakes - California",
 ) as dag:
@@ -68,7 +68,7 @@ from pathlib import Path
 mart_files = list(Path('data/mart').glob('*.csv'))
 if mart_files:
     mart_path = str(mart_files[0])
-    DB_CONFIG = {'user': 'airflow', 'password': 'airflow', 'host': 'postgres', 'port': '5432', 'database': 'analytics'}
+    DB_CONFIG = {'user': 'student', 'password': 'student_pw', 'host': 'postgres', 'port': '5432', 'database': 'analytics'}
     row_count = load(mart_path, DB_CONFIG, 'mart_earthquakes', mode='replace')
     print(f'loaded rows to postgres: {row_count}')
 "

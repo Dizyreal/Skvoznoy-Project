@@ -1,6 +1,6 @@
-# SQL Checks for mart_earthquakes_california
+# SQL Checks for mart_earthquakes
 
-Этот документ содержит наборы SQL-запросов для проверки качества данных (data quality checks) в витрине `mart_earthquakes_california`.
+Этот документ содержит наборы SQL-запросов для проверки качества данных (data quality checks) в витрине `mart_earthquakes`.
 
 ---
 
@@ -10,7 +10,7 @@
 -- Check connection and table exists
 SELECT table_name
 FROM information_schema.tables
-WHERE table_name = 'mart_earthquakes_california';
+WHERE table_name = 'mart_earthquakes';
 ```
 
 ---
@@ -20,7 +20,7 @@ WHERE table_name = 'mart_earthquakes_california';
 ### Check 1: Table is not empty
 
 ```sql
-SELECT COUNT(*) AS row_count FROM mart_earthquakes_california;
+SELECT COUNT(*) AS row_count FROM mart_earthquakes;
 ```
 
 - **Expected:** > 0
@@ -28,7 +28,7 @@ SELECT COUNT(*) AS row_count FROM mart_earthquakes_california;
 ### Check 2: Date range validation
 
 ```sql
-SELECT MIN(date) AS first_date, MAX(date) AS last_date FROM mart_earthquakes_california;
+SELECT MIN(date) AS first_date, MAX(date) AS last_date FROM mart_earthquakes;
 ```
 
 - **Expected:** Reasonable date range for California earthquakes (e.g., no dates from the future or year 1970).
@@ -41,7 +41,7 @@ SELECT
     SUM(CASE WHEN earthquake_count IS NULL THEN 1 ELSE 0 END) AS null_counts,
     SUM(CASE WHEN region_id IS NULL THEN 1 ELSE 0 END) AS null_regions,
     SUM(CASE WHEN region_name IS NULL THEN 1 ELSE 0 END) AS null_region_names
-FROM mart_earthquakes_california;
+FROM mart_earthquakes;
 ```
 
 - **Expected:** 0 for all columns.
@@ -50,7 +50,7 @@ FROM mart_earthquakes_california;
 
 ```sql
 SELECT date, region_id, COUNT(*) AS dup_count
-FROM mart_earthquakes_california
+FROM mart_earthquakes
 GROUP BY date, region_id
 HAVING COUNT(*) > 1;
 ```
@@ -65,7 +65,7 @@ SELECT
     MAX(avg_magnitude) AS max_avg_mag,
     MIN(max_magnitude) AS min_max_mag,
     MAX(max_magnitude) AS max_max_mag
-FROM mart_earthquakes_california;
+FROM mart_earthquakes;
 ```
 
 - **Expected:** All magnitudes between -2.0 and 10.0 (микроземлетрясения могут быть отрицательными, но не более 10).
@@ -73,7 +73,7 @@ FROM mart_earthquakes_california;
 ### Check 6: Earthquake count non-negative
 
 ```sql
-SELECT MIN(earthquake_count) AS min_count FROM mart_earthquakes_california;
+SELECT MIN(earthquake_count) AS min_count FROM mart_earthquakes;
 ```
 
 - **Expected:** >= 0
@@ -85,7 +85,7 @@ SELECT
     AVG(deep_events_pct) AS avg_deep_pct,
     MIN(deep_events_pct) AS min_deep_pct,
     MAX(deep_events_pct) AS max_deep_pct
-FROM mart_earthquakes_california
+FROM mart_earthquakes
 WHERE deep_events_pct IS NOT NULL;
 ```
 
@@ -95,7 +95,7 @@ WHERE deep_events_pct IS NOT NULL;
 
 ```sql
 SELECT COUNT(*) AS invalid_rolling_count
-FROM mart_earthquakes_california
+FROM mart_earthquakes
 WHERE earthquake_count_7d < earthquake_count;
 ```
 
@@ -108,7 +108,7 @@ SELECT
     EXTRACT(YEAR FROM date) AS year,
     EXTRACT(MONTH FROM date) AS month,
     SUM(earthquake_count) AS monthly_count
-FROM mart_earthquakes_california
+FROM mart_earthquakes
 GROUP BY 1, 2
 ORDER BY 1, 2;
 ```
@@ -119,7 +119,7 @@ ORDER BY 1, 2;
 
 ```sql
 SELECT COUNT(*) AS invalid_magnitude_logic
-FROM mart_earthquakes_california
+FROM mart_earthquakes
 WHERE max_magnitude < avg_magnitude;
 ```
 
